@@ -197,7 +197,8 @@ const BOT_URL = 'https://nong-krapuk-bot-production.up.railway.app';
 async function init() {
   if (!token) { showError(); return; }
   try {
-    const res = await fetch(`${BOT_URL}/api/calendar?token=${token}`);
+    const ym = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;
+    const res = await fetch(`${BOT_URL}/api/calendar?token=${token}&month=${ym}`);
     if (!res.ok) { showError(); return; }
     const data = await res.json();
     allApts = data.appointments || [];
@@ -224,10 +225,15 @@ function showError() {
   document.getElementById('error').style.display = 'flex';
 }
 
-function changeMonth(delta) {
+async function changeMonth(delta) {
   currentMonth += delta;
   if (currentMonth > 11) { currentMonth = 0; currentYear++; }
   if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  try {
+    const ym = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;
+    const res = await fetch(`${BOT_URL}/api/calendar?token=${token}&month=${ym}`);
+    if (res.ok) { const data = await res.json(); allApts = data.appointments || []; }
+  } catch(e) {}
   renderCalendar();
 }
 
