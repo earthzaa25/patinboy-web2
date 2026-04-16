@@ -149,6 +149,17 @@
     </div>
   </div>
 
+  <!-- Search Bar -->
+  <div style="padding:0 16px 12px">
+    <div style="position:relative">
+      <input id="search-input" type="text" placeholder="🔍 ค้นหานัดหมาย..." 
+        style="width:100%;background:#161b22;border:1px solid #21262d;border-radius:10px;padding:10px 40px 10px 14px;color:#e6edf3;font-size:14px;font-family:'Sarabun',sans-serif;outline:none"
+        oninput="handleSearch(this.value)" onfocus="this.style.borderColor='#06C755'" onblur="this.style.borderColor='#21262d'">
+      <span id="search-clear" onclick="clearSearch()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#7d8590;cursor:pointer;display:none;font-size:16px">✕</span>
+    </div>
+  </div>
+  <div id="search-results" style="display:none;margin:0 16px 16px;background:#161b22;border:1px solid #21262d;border-radius:16px;overflow:hidden"></div>
+
   <div class="cal-wrap">
     <div class="cal-days-header">
       <div class="cal-day-label sun">อา</div>
@@ -193,6 +204,44 @@ let currentYear, currentMonth;
 let todayStr, selectedDate;
 const token = new URLSearchParams(location.search).get('token');
 const BOT_URL = 'https://nong-krapuk-bot-production.up.railway.app';
+
+function handleSearch(val) {
+  const clear = document.getElementById('search-clear');
+  const results = document.getElementById('search-results');
+  clear.style.display = val ? 'block' : 'none';
+  if (!val.trim()) { results.style.display = 'none'; return; }
+  const keyword = val.trim().toLowerCase();
+  const found = allApts.filter(a => a.title && a.title.toLowerCase().includes(keyword));
+  results.style.display = 'block';
+  if (found.length === 0) {
+    results.innerHTML = '<div style="padding:16px;text-align:center;color:#7d8590;font-size:13px">ไม่พบนัดหมายที่ค้นหาครับ</div>';
+    return;
+  }
+  const highlight = (text) => text.replace(new RegExp(keyword, 'gi'), m => `<mark style="background:#fef08a;color:#78350f;border-radius:2px">${m}</mark>`);
+  results.innerHTML = '<div style="padding:10px 14px;font-size:11px;color:#7d8590;border-bottom:1px solid #21262d">พบ ' + found.length + ' รายการ</div>' +
+    found.slice(0,10).map(apt => `
+      <div style="padding:10px 14px;border-bottom:1px solid rgba(33,38,45,0.5);cursor:pointer" onclick="goToDate('${apt.meeting_date}')">
+        <div style="font-size:13px;font-weight:600;color:#e6edf3">${highlight(apt.title)}</div>
+        <div style="font-size:11px;color:#7d8590;margin-top:3px">📅 ${apt.meeting_date} ⏰ ${apt.start_time ? apt.start_time.slice(0,5) : '--:--'}${apt.location ? ' 📍 '+apt.location : ''}</div>
+      </div>`).join('');
+}
+
+function clearSearch() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('search-clear').style.display = 'none';
+  document.getElementById('search-results').style.display = 'none';
+}
+
+function goToDate(dateStr) {
+  clearSearch();
+  const d = new Date(dateStr + 'T00:00:00');
+  currentYear = d.getFullYear();
+  currentMonth = d.getMonth();
+  selectedDate = dateStr;
+  renderCalendar();
+  renderDetail(dateStr);
+  document.querySelector('.cal-wrap').scrollIntoView({ behavior: 'smooth' });
+}
 
 async function init() {
   if (!token) { showError(); return; }
